@@ -1,0 +1,6 @@
+
+start :
+	cd ..; make cbuild
+
+
+
