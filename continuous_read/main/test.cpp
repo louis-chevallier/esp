@@ -1,7 +1,7 @@
-#pragma once
+
+
 #include <string>
 #include <stdio.h>
-#include "esp_timer.h"
 
 
 using namespace std;
@@ -10,7 +10,7 @@ namespace utillc {
   string S;
   
   int millis() {
-    return esp_timer_get_time()/1000;
+    return 0;
   }
   
   long seko = millis();
@@ -31,11 +31,13 @@ namespace utillc {
     return to_string(a);
   }
 
+  template <> string convert(const double &a) {  return to_string(a); }
+  template <> string convert(const float &a) {  return to_string(a); }
+
+
   template <> string convert(const long int &a) {
     return to_string(a);
   }
-  template <> string convert(const double &a) {  return to_string(a); }
-  template <> string convert(const float &a) {  return to_string(a); }
 
   template <> string convert(const unsigned int &a) {
     return to_string(a);
@@ -59,17 +61,29 @@ namespace utillc {
     return S + "{ " + convert(su.t1) + ", " + convert(su.t2) + " }";
   }
   
+  string ss = utillc::S +  utillc::convert(__LINE__) + convert(__FILE__) + ";;";
+
+  string sss = convert("abc");
+  
+
+#define P(x,y) utillc::fufu(x,y)
   
 #if NOEKO == 1
-#define EKOT(x) printf("%s:%d: [%ld ms] %s\n", __FILE__, __LINE__, (utillc::millis()-utillc::seko), x); utillc::seko=utillc::millis()
+#define EKOT(x) 
 #define EKOX(x) 
 #define EKO() 
 #else
-
-#define P(x,y) utillc::fufu(x,y)
 #define EKOT(x) printf((utillc::S + utillc::convert(__FILE__) + ":" + utillc::convert(__LINE__) + ": [" + utillc::convert(utillc::millis()-utillc::seko) + "ms] " + utillc::convert(x) + ".\n").c_str()); utillc::seko=utillc::millis()
 #define EKOX(x) printf((utillc::S + __FILE__ + ":" + utillc::convert(__LINE__) + ": [" + utillc::convert(utillc::millis()-utillc::seko) + "ms] " + #x + "=" + utillc::convert(x) + ".\n").c_str()); utillc::seko=utillc::millis()
 #define EKO()   printf((utillc::S + __FILE__ + ":" + utillc::convert(__LINE__) + ": [" + utillc::convert(utillc::millis()-utillc::seko) + "ms]\n").c_str()); utillc::seko=utillc::millis()
-
 #endif
+}
+
+
+int a = 36;
+float b = 3.14;
+
+int main() {
+  EKOX(P(a, P(b, a)));
+  EKOX(a);
 }

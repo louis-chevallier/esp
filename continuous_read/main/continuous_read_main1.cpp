@@ -12,9 +12,6 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
-#include "esp_wifi.h"
-
-#define NOEKO 1
 #include "utillc.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
@@ -34,11 +31,10 @@
 #define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type2.data)
 #endif
 
-//#define EXAMPLE_READ_LEN                    256
-#define EXAMPLE_READ_LEN                    8*2
+#define EXAMPLE_READ_LEN                    256
 
 #if CONFIG_IDF_TARGET_ESP32
-static adc_channel_t channel[4] = {ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7};
+static adc_channel_t channel[2] = {ADC_CHANNEL_6, ADC_CHANNEL_7}; //, ADC_CHANNEL_5};
 #else
 static adc_channel_t channel[2] = {ADC_CHANNEL_2, ADC_CHANNEL_3};
 #endif
@@ -46,86 +42,83 @@ static adc_channel_t channel[2] = {ADC_CHANNEL_2, ADC_CHANNEL_3};
 static TaskHandle_t s_task_handle;
 static const char *TAG = "EXAMPLE";
 
-
-long count1 = 0;
-
 static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 {
   BaseType_t mustYield = pdFALSE;
   //Notify that ADC continuous driver has done enough number of conversions
   vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
-  //count1 += 1;
+  EKO();
   return (mustYield == pdTRUE);
 }
 
 static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
 {
   adc_continuous_handle_t handle = NULL;
-
+  EKOX(channel_num);
   adc_continuous_handle_cfg_t adc_config = {
     .max_store_buf_size = 1024,
     .conv_frame_size = EXAMPLE_READ_LEN,
   };
+  return;
+  EKO();
   ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
-
+  EKOX(handle);
   adc_continuous_config_t dig_cfg = {
     .sample_freq_hz = 20 * 1000,
     .conv_mode = EXAMPLE_ADC_CONV_MODE,
     .format = EXAMPLE_ADC_OUTPUT_TYPE,
   };
-
+  EKO();
   adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
   dig_cfg.pattern_num = channel_num;
   for (int i = 0; i < channel_num; i++) {
     adc_pattern[i].atten = EXAMPLE_ADC_ATTEN;
     adc_pattern[i].channel = channel[i] & 0x7;
+    EKOX(adc_pattern[i].channel);
     adc_pattern[i].unit = EXAMPLE_ADC_UNIT;
     adc_pattern[i].bit_width = EXAMPLE_ADC_BIT_WIDTH;
 
-    ESP_LOGI(TAG, "adc_pattern[%d].atten is :%" PRIx8, i, adc_pattern[i].atten);
-    ESP_LOGI(TAG, "adc_pattern[%d].channel is :%" PRIx8, i, adc_pattern[i].channel);
-    ESP_LOGI(TAG, "adc_pattern[%d].unit is :%" PRIx8, i, adc_pattern[i].unit);
+    //ESP_LOGI(TAG, "adc_pattern[%d].atten is :%"PRIx8, i, adc_pattern[i].atten);
+    //ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
+    //ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
   }
+  EKO();
   dig_cfg.adc_pattern = adc_pattern;
+  EKO();
+  
   ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+  EKOX(handle);
+  EKOX(out_handle);
 
   *out_handle = handle;
+  EKO();
 }
 
-extern "C" void app_main(); 
+extern "C" { void app_main(); }
+
 void app_main(void)
 {
-  esp_err_t results = esp_wifi_stop();
-
-
-  
-  EKOT("begin");
   esp_err_t ret;
   uint32_t ret_num = 0;
   uint8_t result[EXAMPLE_READ_LEN] = {0};
   memset(result, 0xcc, EXAMPLE_READ_LEN);
-  EKO();
-  EKO();
-  EKO();
-  s_task_handle = xTaskGetCurrentTaskHandle();
 
+  s_task_handle = xTaskGetCurrentTaskHandle();
+  EKO();
   adc_continuous_handle_t handle = NULL;
   continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
-
+  EKOX(handle);
   adc_continuous_evt_cbs_t cbs = {
     .on_conv_done = s_conv_done_cb,
   };
-  EKO();
-  vTaskDelay(10);
-  EKO();
   ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
-  EKO();
   ESP_ERROR_CHECK(adc_continuous_start(handle));
-  vTaskDelay(1);
-  long count = 0;
-  EKOT("go");
-  for (int ii = 0; ii < 1000000; ii++)  {
-    
+
+  EKO();
+  long int sss = 0;
+  return;
+  while (1) {
+
     /**
      * This is to show you the way to use the ADC continuous mode driver event callback.
      * This `ulTaskNotifyTake` will block when the data processing in the task is fast.
@@ -134,56 +127,45 @@ void app_main(void)
      * Without using this event callback (to notify this task), you can still just call
      * `adc_continuous_read()` here in a loop, with/without a certain block timeout.
      */
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    //ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     char unit[] = EXAMPLE_ADC_UNIT_STR(EXAMPLE_ADC_UNIT);
 
-    for (int jj = 0; jj < 1000000; jj++) {
-      //EKOX(jj);
+    EKOT("debut");
+    for (int ii = 0; ii < 100000; ) {
       ret = adc_continuous_read(handle, result, EXAMPLE_READ_LEN, &ret_num, 0);
-      //EKOX(ret_num);
-
-      count += ret_num / SOC_ADC_DIGI_RESULT_BYTES;
-      
       if (ret == ESP_OK) {
-        //ESP_LOGI("TASK", "ret is %x, ret_num is %" PRIu32" bytes", ret, ret_num);
+        //ESP_LOGI("TASK", "ret is %x, ret_num is %"PRIu32" bytes", ret, ret_num);
         for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
           adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
           uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
           uint32_t data = EXAMPLE_ADC_GET_DATA(p);
           /* Check the channel number validation, the data is invalid if the channel num exceed the maximum channel */
           if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT)) {
-            //ESP_LOGI(TAG, "Unit: %s, Channel: %" PRIu32", Value: %" PRIx32, unit, chan_num, data);
+            //ESP_LOGI(TAG, "Unit: %s, Channel: %"PRIu32", Value: %"PRIx32, unit, chan_num, data);
+            sss += data;
           } else {
-            ESP_LOGW(TAG, "Invalid data [%s_%" PRIu32"_%" PRIx32"]", unit, chan_num, data);
+            ESP_LOGW(TAG, "Invalid data [%s_%d %d", unit, int(chan_num), int(data));
           }
         }
+
+        ii++;
         /**
          * Because printing is slow, so every time you call `ulTaskNotifyTake`, it will immediately return.
          * To avoid a task watchdog timeout, add a delay here. When you replace the way you process the data,
          * usually you don't need this delay (as this task will block for a while).
          */
         //vTaskDelay(1);
-        if (count > 100000) {
-          EKOX(count);
-          break;
-        }
       } else if (ret == ESP_ERR_TIMEOUT) {
         //We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
         break;
       }
-      //EKOX(jj);
     }
-    EKOX(count);
-    if (count > 100000) {
-      EKOX(count);
-      break;
-    }
-    
+    EKOT("fini");
+    EKOX(sss);
+    break;
   }
-  EKOX(P(count1, count));
-  EKOT("end");
-  printf("count %ld\n", count);
+
   ESP_ERROR_CHECK(adc_continuous_stop(handle));
   ESP_ERROR_CHECK(adc_continuous_deinit(handle));
 }
