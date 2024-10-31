@@ -62,9 +62,35 @@ static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel,
 static void example_adc_calibration_deinit(adc_cali_handle_t handle);
 
 extern "C" { void app_main(); }
-  
+
+auto tt = "abc";
+int a = 36;
+float b = 3.14;
+
+
 void app_main(void)
 {
+
+  {
+    EKOX(a - b - a - "abc");
+    EKOX(a - b - a - "abc");  
+    EKOX(b);
+    
+    for (int ii = 0; ii < 12; ii++) {
+      EKOX(a - b);
+      EKOX(a);
+      EKOX(tt);
+      EKO();
+      EKOT("coucou");
+      EKO();
+    }
+  }  
+
+  
+  return ;
+
+
+
   //-------------ADC1 Init---------------//
   adc_oneshot_unit_handle_t adc1_handle;
   adc_oneshot_unit_init_cfg_t init_config1 = {
