@@ -40,7 +40,7 @@
 #endif
 
 //#define EXAMPLE_READ_LEN                    256
-#define EXAMPLE_READ_LEN                    8*2
+#define EXAMPLE_READ_LEN                    8
 
 #if CONFIG_IDF_TARGET_ESP32
 static adc_channel_t channel[4] = {ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7};
@@ -74,7 +74,7 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
   ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
   adc_continuous_config_t dig_cfg = {
-    .sample_freq_hz = 20 * 1000,
+    .sample_freq_hz = 200 * 1000,
     .conv_mode = EXAMPLE_ADC_CONV_MODE,
     .format = EXAMPLE_ADC_OUTPUT_TYPE,
   };
@@ -100,7 +100,7 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
 
 static void example_task(void *args)
 {
-  const auto KKK = 100;
+  const auto KKK = 100000;
   uint32_t size = 0;
   const char *TAG = "example_task";
 
@@ -159,7 +159,7 @@ static void example_task(void *args)
           uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
           uint32_t data = EXAMPLE_ADC_GET_DATA(p);
 
-          EKOX(chan_num);
+          //EKOX(chan_num);
           chans[chan_num] ++;
           
           /* Check the channel number validation, the data is invalid if the channel num exceed the maximum channel */
@@ -193,7 +193,11 @@ static void example_task(void *args)
     
   }
   EKOX(count1 - count);
-  EKOX(chans);
+  std::vector<int> vec(chans,chans+10);  
+  for (auto e : vec) {
+    EKOX(e);
+  }
+
   EKOT("end");
   printf("count %ld\n", count);
   ESP_ERROR_CHECK(adc_continuous_stop(handle));
@@ -223,6 +227,6 @@ extern "C" void app_main();
 void app_main(void)
 {
 
-  xTaskCreate(&example_task, "example_task", 4072, NULL, 5, NULL);
+  xTaskCreate(&example_task, "example_task", 5072, NULL, 5, NULL);
 
 }  
