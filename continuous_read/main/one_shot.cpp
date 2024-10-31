@@ -42,7 +42,7 @@ const static char *TAG = "EXAMPLE";
 #define EXAMPLE_USE_ADC2            1
 #endif
 
-//#include "utillc.h"
+#include "utillc.h"
 
 
 #if EXAMPLE_USE_ADC2
@@ -72,24 +72,12 @@ void app_main(void)
 {
 
   {
-    EKOX(a - b - a - "abc");
-    EKOX(a - b - a - "abc");  
+    EKOX(a - b);
     EKOX(b);
-    
-    for (int ii = 0; ii < 12; ii++) {
-      EKOX(a - b);
-      EKOX(a);
-      EKOX(tt);
-      EKO();
-      EKOT("coucou");
-      EKO();
-    }
+    EKO();
   }  
 
   
-  return ;
-
-
 
   //-------------ADC1 Init---------------//
   adc_oneshot_unit_handle_t adc1_handle;

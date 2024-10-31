@@ -13,8 +13,13 @@
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
 #include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_heap_task_info.h"
+#include "esp_log.h"
+#include "esp_random.h"
 
-#define NOEKO 1
+//#define NOEKO 1
 #include "utillc.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
@@ -88,27 +93,25 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
   }
   dig_cfg.adc_pattern = adc_pattern;
   ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
-
+  //EKOX((int)out_handle);
   *out_handle = handle;
 }
 
-extern "C" void app_main(); 
-void app_main(void)
+
+static void example_task(void *args)
 {
+  const auto KKK = 100;
+  uint32_t size = 0;
+  const char *TAG = "example_task";
+
   esp_err_t results = esp_wifi_stop();
-
-
   
-  EKOT("begin");
+  //EKOT("begin");
   esp_err_t ret;
   uint32_t ret_num = 0;
   uint8_t result[EXAMPLE_READ_LEN] = {0};
   memset(result, 0xcc, EXAMPLE_READ_LEN);
-  EKO();
-  EKO();
-  EKO();
   s_task_handle = xTaskGetCurrentTaskHandle();
-
   adc_continuous_handle_t handle = NULL;
   continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
 
@@ -117,14 +120,17 @@ void app_main(void)
   };
   EKO();
   vTaskDelay(10);
-  EKO();
+  //EKO();
   ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
-  EKO();
+  //EKO();
   ESP_ERROR_CHECK(adc_continuous_start(handle));
   vTaskDelay(1);
   long count = 0;
   EKOT("go");
-  for (int ii = 0; ii < 1000000; ii++)  {
+
+  int chans[10] = {0};
+  
+  for (int ii = 0; ii < 100000000; ii++)  {
     
     /**
      * This is to show you the way to use the ADC continuous mode driver event callback.
@@ -134,23 +140,28 @@ void app_main(void)
      * Without using this event callback (to notify this task), you can still just call
      * `adc_continuous_read()` here in a loop, with/without a certain block timeout.
      */
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    //ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     char unit[] = EXAMPLE_ADC_UNIT_STR(EXAMPLE_ADC_UNIT);
 
-    for (int jj = 0; jj < 1000000; jj++) {
+    for (int jj = 0; jj < 1000000000; jj++) {
       //EKOX(jj);
       ret = adc_continuous_read(handle, result, EXAMPLE_READ_LEN, &ret_num, 0);
       //EKOX(ret_num);
 
-      count += ret_num / SOC_ADC_DIGI_RESULT_BYTES;
       
       if (ret == ESP_OK) {
+        count += ret_num / SOC_ADC_DIGI_RESULT_BYTES;
+        
         //ESP_LOGI("TASK", "ret is %x, ret_num is %" PRIu32" bytes", ret, ret_num);
         for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
           adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
           uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
           uint32_t data = EXAMPLE_ADC_GET_DATA(p);
+
+          EKOX(chan_num);
+          chans[chan_num] ++;
+          
           /* Check the channel number validation, the data is invalid if the channel num exceed the maximum channel */
           if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT)) {
             //ESP_LOGI(TAG, "Unit: %s, Channel: %" PRIu32", Value: %" PRIx32, unit, chan_num, data);
@@ -164,7 +175,7 @@ void app_main(void)
          * usually you don't need this delay (as this task will block for a while).
          */
         //vTaskDelay(1);
-        if (count > 100000) {
+        if (count > KKK) {
           EKOX(count);
           break;
         }
@@ -174,16 +185,44 @@ void app_main(void)
       }
       //EKOX(jj);
     }
-    EKOX(count);
-    if (count > 100000) {
+    //EKOX(count);
+    if (count > KKK) {
       EKOX(count);
       break;
     }
     
   }
-  EKOX(P(count1, count));
+  EKOX(count1 - count);
+  EKOX(chans);
   EKOT("end");
   printf("count %ld\n", count);
   ESP_ERROR_CHECK(adc_continuous_stop(handle));
   ESP_ERROR_CHECK(adc_continuous_deinit(handle));
+  
+  while (1) {
+    /*
+     * Allocate random amount of memory for demonstration
+     */
+    size = (esp_random() % 1000);
+    void *ptr = malloc(size);
+    if (ptr == NULL) {
+      ESP_LOGE(TAG, "Could not allocate heap memory");
+      abort();
+    }
+    //esp_dump_per_task_heap_info();
+    free(ptr);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+  }
 }
+
+/*
+ * 16KHz : 3 channels ADC 
+ */
+
+extern "C" void app_main(); 
+void app_main(void)
+{
+
+  xTaskCreate(&example_task, "example_task", 4072, NULL, 5, NULL);
+
+}  

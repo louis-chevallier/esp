@@ -37,19 +37,32 @@ namespace utillc {
     A(const string &t) : s(t){}
     //A(const pc &t) : s(t) {}
     A(const pcc &t) : s(t) {}
+    //A(const pvc &t) : s(t) {}
     A(const int &t) : s(to_string(t)) {}
     A(const float &t) : s(to_string(t)) {}
     A(const double &t) : s(to_string(t)) {}
     A(const long int &t) : s(to_string(t)) {}
     A(const long unsigned int &t) : s(to_string(t)) {}
     A(const uint8_t &t) : s(to_string(t)) {}
-    template <typename T> A(const vector<T> &v) {
-      for(int i = 0; i < v.size(); i++) {
-        const T& v = v[i];
-        auto d = i>0 ? " @ " :  "";
-        s = s + d + A(v).s;
+
+    template <typename T, int N> A(const T (&v)[N]) {
+      s = "[";
+      for(int i = 0; i < N; i++) {
+        const T& vv = v[i];
+        auto d = i>0 ? ", " :  "";
+        s = s + d + A(vv).s;
       }
+      s = s + "]";
       
+    }
+    template <typename T> A(const vector<T> &v) {
+      s = "[";
+      for(int i = 0; i < v.size(); i++) {
+        const T& vv = v[i];
+        auto d = i>0 ? ", " :  "";
+        s = s + d + A(vv).s;
+      }
+      s = s + "]";      
     }
 
     A operator,(const A &aa) {
