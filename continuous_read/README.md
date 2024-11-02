@@ -69,3 +69,13 @@ I (477) EXAMPLE: Unit: ADC-1, Channel: 3, Value: 62f
     * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
 
 For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
+
+
+# pinout
+
+![schema esp pinout](https://i0.wp.com/circuits4you.com/wp-content/uploads/2018/12/ESP32-Pinout.jpg?w=758&ssl=1 =600x600)
+
+ <img src="https://i0.wp.com/circuits4you.com/wp-content/uploads/2018/12/ESP32-Pinout.jpg?w=758&ssl=1"  width="600" height="600">
+
+
+![adc](https://lastminuteengineers.com/esp32-basics-adc/?utm_content=cmp-true)

@@ -1,3 +1,4 @@
+$(warning $(CURDIR) $(abspath  $(MAKEFILE_LIST)/..))
 
 startx :
 	cp esp_timer_inc.h esp_timer.h
@@ -7,6 +8,9 @@ startx :
 
 start :
 	cd ..; make cbuild
+
+include ../makefile
+
 
 
 

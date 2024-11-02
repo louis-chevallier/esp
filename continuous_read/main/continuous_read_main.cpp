@@ -12,6 +12,8 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
+//#include "soc/dac_channel.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -19,13 +21,21 @@
 #include "esp_log.h"
 #include "esp_random.h"
 
+
+/* PINOUT
+ * https://circuits4you.com/2018/12/31/esp32-wroom32-devkit-analog-read-example/
+ * ESP32 Wroom => ESP32 simple
+ * menuconfig => -O, 240MHz
+ * sample rate ( 4 channels together ) : 40KHz
+ */
+
 //#define NOEKO 1
 #include "utillc.h"
 
 #define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
 #define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
 #define EXAMPLE_ADC_UNIT_STR(unit)          _EXAMPLE_ADC_UNIT_STR(unit)
-#define EXAMPLE_ADC_CONV_MODE               ADC_CONV_SINGLE_UNIT_1
+#define EXAMPLE_ADC_CONV_MODE               ADC_CONV_SINGLE_UNIT_1 // l'adc no 1 ( pas 2)
 #define EXAMPLE_ADC_ATTEN                   ADC_ATTEN_DB_0
 #define EXAMPLE_ADC_BIT_WIDTH               SOC_ADC_DIGI_MAX_BITWIDTH
 
@@ -40,10 +50,10 @@
 #endif
 
 //#define EXAMPLE_READ_LEN                    256
-#define EXAMPLE_READ_LEN                    8
+#define EXAMPLE_READ_LEN                    16
 
 #if CONFIG_IDF_TARGET_ESP32
-static adc_channel_t channel[4] = {ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7};
+static adc_channel_t channel[4] = {ADC_CHANNEL_0, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7};
 #else
 static adc_channel_t channel[2] = {ADC_CHANNEL_2, ADC_CHANNEL_3};
 #endif
@@ -59,14 +69,14 @@ static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_c
   BaseType_t mustYield = pdFALSE;
   //Notify that ADC continuous driver has done enough number of conversions
   vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
-  //count1 += 1;
+  count1 += 1;
   return (mustYield == pdTRUE);
 }
 
 static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
 {
   adc_continuous_handle_t handle = NULL;
-
+  EKOX(channel_num);
   adc_continuous_handle_cfg_t adc_config = {
     .max_store_buf_size = 1024,
     .conv_frame_size = EXAMPLE_READ_LEN,
@@ -74,7 +84,7 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
   ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
   adc_continuous_config_t dig_cfg = {
-    .sample_freq_hz = 200 * 1000,
+    .sample_freq_hz = 100 * 1000,
     .conv_mode = EXAMPLE_ADC_CONV_MODE,
     .format = EXAMPLE_ADC_OUTPUT_TYPE,
   };
@@ -97,6 +107,10 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
   *out_handle = handle;
 }
 
+int xxxx = 0;
+const int LL = 400;
+unsigned short buf[LL] = {0};
+int buf_i = 0;
 
 static void example_task(void *args)
 {
@@ -115,12 +129,32 @@ static void example_task(void *args)
   adc_continuous_handle_t handle = NULL;
   continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
 
+  //typedef bool (*adc_continuous_callback_t)(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data);
+  
   adc_continuous_evt_cbs_t cbs = {
-    .on_conv_done = s_conv_done_cb,
+    .on_conv_done = [](adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data) -> bool {
+      BaseType_t mustYield = pdFALSE;      
+      xxxx = edata->size;
+      vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
+
+      for (int i = 0; i < edata->size; i++) {
+        if (buf_i < LL)
+          buf[buf_i++] = edata->conv_frame_buffer[i];
+      }
+
+      
+      count1 += 1;
+      return (mustYield == pdTRUE);
+      
+      return 2==2;
+    } //frame_finished_cb; //s_conv_done_cb,
   };
   EKO();
   vTaskDelay(10);
   //EKO();
+
+
+  
   ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
   //EKO();
   ESP_ERROR_CHECK(adc_continuous_start(handle));
@@ -128,10 +162,27 @@ static void example_task(void *args)
   long count = 0;
   EKOT("go");
 
-  int chans[10] = {0};
+  struct A {
+    int _max, _min;
+    long int val, count;
+    A() : _max(-1000), _min(100), val(0), count(0) {}
+    void put(int data) {
+      count ++;
+      val += data;
+      _max = std::max(data, _max);
+      _min = std::min(data, _min);
+    }
+    int mean() { return double(val)/count;}
+    std::string stat() {
+      return EK(count) + EK(_min) + EK(_max) + EK(mean()) ;
+    }
+  };
+
+  std::vector<A> chans(10);
+
+
   
-  for (int ii = 0; ii < 100000000; ii++)  {
-    
+  for (int ii = 0; ii < 100000000; ii++)  {    
     /**
      * This is to show you the way to use the ADC continuous mode driver event callback.
      * This `ulTaskNotifyTake` will block when the data processing in the task is fast.
@@ -160,7 +211,12 @@ static void example_task(void *args)
           uint32_t data = EXAMPLE_ADC_GET_DATA(p);
 
           //EKOX(chan_num);
-          chans[chan_num] ++;
+          chans[chan_num].put(data);
+
+          if (chan_num == 0 && buf_i < LL) {
+            buf[buf_i++] = data;
+          }
+
           
           /* Check the channel number validation, the data is invalid if the channel num exceed the maximum channel */
           if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT)) {
@@ -193,11 +249,21 @@ static void example_task(void *args)
     
   }
   EKOX(count1 - count);
+  /*
   std::vector<int> vec(chans,chans+10);  
   for (auto e : vec) {
     EKOX(e);
   }
+  */
+  EKOX(count);
+  for (int i = 0; i < chans.size(); i++) {
+    EKOX(i + ":" + chans[i].count + chans[i].stat());
+  }
+  for (int i = 0; i < LL; i++) {
+    printf("%d\n", buf[i]);
+  }
 
+  EKOX(xxxx);
   EKOT("end");
   printf("count %ld\n", count);
   ESP_ERROR_CHECK(adc_continuous_stop(handle));

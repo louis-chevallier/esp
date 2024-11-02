@@ -109,6 +109,6 @@ namespace utillc {
 #define EKOT(x) printf((utillc::AA + __FILE__ + ":" + __LINE__ + ": [" + (utillc::millis()-utillc::seko) + "ms] " + x + ".\n").s.c_str()); utillc::seko=utillc::millis(); fflush(stdout)
 #define EKOX(x) printf((utillc::AA + __FILE__ + ":" + __LINE__ + ": [" + (utillc::millis()-utillc::seko) + "ms] " + utillc::build(#x, (utillc::AA + x)) + ".\n").s.c_str()); utillc::seko=utillc::millis() ;fflush(stdout)
 #define EKO() printf((utillc::AA + __FILE__ + ":" + __LINE__ + ": [" + (utillc::millis()-utillc::seko) + "ms].\n").s.c_str()); utillc::seko=utillc::millis()  ;fflush(stdout)
-
+#define EK(x) (utillc::AA + " " + utillc::build(#x, (utillc::AA + x))).s
 #endif
 }
